@@ -27,16 +27,16 @@
         public Tensor1D Forward(Tensor1D x)
         {
             var y = Tensor.MatMul(x, weight);
-            var result = Tensor.AddWithBroadcast(y, bias);
-            return new Tensor1D(result, name: "Linear_Forward_result");
+            var result = Tensor.AddWithBroadcast(y, bias).ToTensor1D(name: "Linear_Forward_result");
+            return result;
         }
 
         public BatchTensor1D Forward(BatchTensor1D x)
         {
             var y = Tensor.MatMul(x.ToTensor2D(name: "x_ToTensor2D"), weight);
-            var result = Tensor.AddWithBroadcast(y, bias);
+            var result = Tensor.AddWithBroadcast(y, bias).ToBatchTensor1D(name: "Linear_Forward_result");
 
-            return new BatchTensor1D(result, name: "Linear_Forward_result");
+            return result;
         }
     }
 }

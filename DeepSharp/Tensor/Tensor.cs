@@ -10,21 +10,12 @@
 
         public string Name { get; set; } = "";
 
-        public Tensor(float[] data, int[] shape, bool isRequiresGrad = false, string name = "")
+        public Tensor(float[] data, int[] shape, bool isRequiresGrad = false, string name = "NoNameTensor")
         {
             Data = data;
             Shape = shape;
             IsRequiresGrad = isRequiresGrad;
             GradInfo = new GradInfo();
-            Name = name;
-        }
-
-        public Tensor(float[] data, int[] shape, GradInfo gradInfo, bool isRequiresGrad = false, string name = "")
-        {
-            Data = data;
-            Shape = shape;
-            IsRequiresGrad = isRequiresGrad;
-            GradInfo = gradInfo;
             Name = name;
         }
 
