@@ -48,7 +48,7 @@
             // 後ろから順にBackward
             foreach (var t in topo)
             {
-                Console.WriteLine($"Backward: {t.Name}, IsRequiresGrad={t.IsRequiresGrad}, Parents={string.Join(", ", t.GradInfo.Parents.Select(p => p.Name))}");
+                //Console.WriteLine($"Backward: {t.Name}, IsRequiresGrad={t.IsRequiresGrad}, Parents={string.Join(", ", t.GradInfo.Parents.Select(p => p.Name))}");
 
                 if (t.GradInfo.BackwardFn != null)
                 {

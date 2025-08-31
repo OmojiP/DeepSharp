@@ -173,32 +173,20 @@
                     // gradOutput.Grad は [B, P]
                     if (a.IsRequiresGrad)
                     {
-                        var gradOutputTensor2D = gradOutput.GradInfo.Grad as Tensor2D;
-                        if (gradOutputTensor2D == null)
-                        { 
-                            Console.WriteLine("Grad not convert to Tensor2D");
-                        }
-                        else
-                        {
-                            var gradA = MatMul(gradOutputTensor2D, Transpose(b)); // 新しい Tensor を返す
-                            a.GradInfo.Grad ??= ZerosLike(a);
-                            AddInto(a.GradInfo.Grad, gradA); // in-place に加算
-                        }
-
+                        var gradOutputTensor2D = gradOutput.GradInfo.Grad!.ToTensor2D();
+                        
+                        var gradA = MatMul(gradOutputTensor2D, Transpose(b)); // 新しい Tensor を返す
+                        a.GradInfo.Grad ??= ZerosLike(a);
+                        AddInto(a.GradInfo.Grad, gradA); // in-place に加算
                     }
                     if (b.IsRequiresGrad)
                     {
-                        var gradOutputTensor2D = gradOutput.GradInfo.Grad as Tensor2D;
-                        if (gradOutputTensor2D == null)
-                        {
-                            Console.WriteLine("Grad not convert to Tensor2D");
-                        }
-                        else
-                        {
-                            var gradB = MatMul(Transpose(a), gradOutputTensor2D);
-                            b.GradInfo.Grad ??= ZerosLike(b);
-                            AddInto(b.GradInfo.Grad, gradB);
-                        }
+                        var gradOutputTensor2D = gradOutput.GradInfo.Grad!.ToTensor2D();
+                                                
+                        var gradB = MatMul(Transpose(a), gradOutputTensor2D);
+                        b.GradInfo.Grad ??= ZerosLike(b);
+                        AddInto(b.GradInfo.Grad, gradB);
+
                     }
                 };
             }
