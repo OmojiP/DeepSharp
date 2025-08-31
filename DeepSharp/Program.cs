@@ -11,7 +11,7 @@ namespace DeepSharp
         {
             var model = new MLP();
             //var optim = new SGD(model.Parameters(), 0.01f);
-            var optim = new Adam(model.Parameters(), 0.01f);
+            var optim = new Adam(model.GetParameters(), 0.01f);
 
             var trainData = MnistCsvLoader.LoadCsv(@"C:\Users\kodai\Downloads\mnist_test.csv\mnist_test.csv");
 
@@ -24,30 +24,25 @@ namespace DeepSharp
                 int correct = 0;
                 int total = 0;
 
-                foreach (var (batchX, batchY) in MnistCsvLoader.GetBatches(trainData, 32))
+                foreach (var batch in MnistCsvLoader.GetBatches(trainData, 32))
                 {
-                    var logits = model.Forward(batchX);
-                    var loss = Loss.CrossEntropy(logits, batchY);
+                    //Console.WriteLine($"\r epoch {epoch} batch {batchCount}");
+
+                    var logits = model.Forward(batch.BatchTensor);
+                    ScalarTensor loss = Loss.CrossEntropy(logits, batch.Labels);
 
                     optim.ZeroGrad();
                     loss.Backward();
 
-                    // debug: first layer grad norm
-                    var w = model.Parameters()[0];
-                    float sumsq = 0f;
-                    if (w.Grad != null)
-                        for (int i = 0; i < w.Grad.Data.Length; i++) sumsq += w.Grad.Data[i] * w.Grad.Data[i];
-                    //Console.WriteLine($" batch grad_norm_W0: {MathF.Sqrt(sumsq)}");
-
-                    Tensor.ClipGrad(model.Parameters(), 5.0f);
+                    Tensor.ClipGrad(model, 5.0f);
                     optim.Step();
 
-                    epochLossSum += loss.Data[0];
+                    epochLossSum += loss.Item;
                     batchCount++;
 
                     // accuracy (predict argmax of logits)
-                    int batchSize = logits.Shape[0];
-                    int classes = logits.Shape[1];
+                    int batchSize = logits.BatchSize;
+                    int classes = logits.Features;
                     for (int i = 0; i < batchSize; i++)
                     {
                         int pred = 0;
@@ -56,7 +51,7 @@ namespace DeepSharp
                         {
                             if (logits.Data[i * classes + j] > best) { best = logits.Data[i * classes + j]; pred = j; }
                         }
-                        if (pred == batchY[i]) correct++;
+                        if (pred == batch.Labels[i]) correct++;
                         total++;
                     }
                 }
@@ -66,7 +61,7 @@ namespace DeepSharp
 
             var endTime = DateTime.Now;
 
-            Console.WriteLine((startTime - endTime).ToString());
+            Console.WriteLine((endTime - startTime).ToString());
         }
     }
 }

@@ -15,10 +15,10 @@
         {
             foreach (var p in parameters)
             {
-                if (p.Grad != null)
+                if (p.GradInfo.Grad != null)
                 {
                     for (int i = 0; i < p.Data.Length; i++)
-                        p.Data[i] -= lr * p.Grad.Data[i];
+                        p.Data[i] -= lr * p.GradInfo.Grad.Data[i];
                 }
             }
         }
@@ -28,11 +28,11 @@
             foreach (var p in parameters)
             {
                 // null ではなく 0 のテンソルを割り当てる（既にあればゼロクリア）
-                if (p.Grad == null)
-                    p.Grad = Tensor.ZerosLike(p);
+                if (p.GradInfo.Grad == null)
+                    p.GradInfo.Grad = Tensor.ZerosLike(p);
                 else
-                    for (int i = 0; i < p.Grad.Data.Length; i++)
-                        p.Grad.Data[i] = 0f;
+                    for (int i = 0; i < p.GradInfo.Grad.Data.Length; i++)
+                        p.GradInfo.Grad.Data[i] = 0f;
             }
         }
     }
@@ -60,8 +60,8 @@
             t++;
             foreach (var p in parameters)
             {
-                if (p.Grad == null) continue;
-                var grad = p.Grad.Data;
+                if (p.GradInfo.Grad == null) continue;
+                var grad = p.GradInfo.Grad.Data;
                 var mp = m[p]; var vp = v[p];
                 for (int i = 0; i < grad.Length; i++)
                 {
@@ -78,8 +78,8 @@
         {
             foreach (var p in parameters)
             {
-                if (p.Grad == null) p.Grad = Tensor.ZerosLike(p);
-                else for (int i = 0; i < p.Grad.Data.Length; i++) p.Grad.Data[i] = 0f;
+                if (p.GradInfo.Grad == null) p.GradInfo.Grad = Tensor.ZerosLike(p);
+                else for (int i = 0; i < p.GradInfo.Grad.Data.Length; i++) p.GradInfo.Grad.Data[i] = 0f;
             }
         }
     }

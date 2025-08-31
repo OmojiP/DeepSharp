@@ -2,7 +2,7 @@
 {
     public static class Loss
     {
-        public static Tensor CrossEntropy(Tensor logits, int[] targets)
+        public static ScalarTensor CrossEntropy(Tensor logits, int[] targets)
         {
             int B = logits.Shape[0], C = logits.Shape[1];
             var lossPer = new float[B];
@@ -30,19 +30,19 @@
                     softmax[i * C + j] /= (float)sumExp;
             }
 
-            var result = new Tensor(new float[] { lossPer.Average() }, new int[] { 1 }, requiresGrad: true);
-            result.Parents = new List<Tensor> { logits };
-            result.BackwardFn = (Tensor gradOutput) =>
+            var result = new ScalarTensor(lossPer.Average(), isRequiresGrad: true);
+            result.GradInfo.Parents = new List<Tensor> { logits };
+            result.GradInfo.BackwardFn = (Tensor gradOutput) =>
             {
-                float scale = (gradOutput.Grad != null) ? gradOutput.Grad.Data[0] / (float)B : 1f / (float)B;
-                logits.Grad ??= Tensor.ZerosLike(logits);
+                float scale = (gradOutput.GradInfo.Grad != null) ? gradOutput.GradInfo.Grad.Data[0] / (float)B : 1f / (float)B;
+                logits.GradInfo.Grad ??= Tensor.ZerosLike(logits);
                 for (int i = 0; i < B; i++)
                 {
                     int lbl = targets[i];
                     for (int j = 0; j < C; j++)
                     {
                         float y = (j == lbl) ? 1f : 0f;
-                        logits.Grad.Data[i * C + j] += (softmax[i * C + j] - y) * scale;
+                        logits.GradInfo.Grad.Data[i * C + j] += (softmax[i * C + j] - y) * scale;
                     }
                 }
             };

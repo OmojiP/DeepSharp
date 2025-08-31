@@ -1,26 +1,42 @@
 ﻿namespace DeepSharp.Layer
 {
+    /// <summary>
+    /// 全結合層 (Linear Layer)
+    /// </summary>
     public class Linear
     {
-        public Tensor W, b;
+        public Tensor2D weight;
+        public Tensor1D bias;
 
         public Linear(int inFeatures, int outFeatures)
         {
             var rand = new Random();
-            W = new Tensor(new float[inFeatures * outFeatures], new int[] { inFeatures, outFeatures }) { RequiresGrad = true };
-            b = new Tensor(new float[outFeatures], new int[] { 1, outFeatures }) { RequiresGrad = true }; // 修正
+            weight = new Tensor2D(new float[inFeatures * outFeatures], inFeatures, outFeatures, isRequiresGrad: true, name: "Linear_weight");
+            bias = new Tensor1D(new float[outFeatures], isRequiresGrad: true, name: "Linear_bias");
 
             // Xavier初期化
             var limit = (float)Math.Sqrt(6.0 / (inFeatures + outFeatures));
-            for (int i = 0; i < W.Data.Length; i++)
-                W.Data[i] = (float)(rand.NextDouble() * 2 - 1) * limit;
+            for (int i = 0; i < weight.Data.Length; i++)
+                weight.Data[i] = (float)(rand.NextDouble() * 2 - 1) * limit;
+
+            // biasは0で初期化
+            for (int i = 0; i < bias.Data.Length; i++)
+                bias.Data[i] = 0f;
         }
 
-
-        public Tensor Forward(Tensor x)
+        public Tensor1D Forward(Tensor1D x)
         {
-            var y = Tensor.MatMul(x, W);
-            return Tensor.AddWithBroadcast(y, b);
+            var y = Tensor.MatMul(x, weight);
+            var result = Tensor.AddWithBroadcast(y, bias).ToTensor1D(name: "Linear_Forward_result");
+            return result;
+        }
+
+        public BatchTensor1D Forward(BatchTensor1D x)
+        {
+            var y = Tensor.MatMul(x.ToTensor2D(name: "x_ToTensor2D"), weight);
+            var result = Tensor.AddWithBroadcast(y, bias).ToBatchTensor1D(name: "Linear_Forward_result");
+
+            return result;
         }
     }
 }
