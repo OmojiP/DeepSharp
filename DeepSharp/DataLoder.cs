@@ -2,9 +2,9 @@
 {
     class MnistCsvLoader
     {
-        public static List<(Tensor, int)> LoadCsv(string path)
+        public static Dataset<Tensor1D> LoadCsv(string path)
         {
-            var data = new List<(Tensor, int)>();
+            var dataset = new Dataset<Tensor1D>();
 
             foreach (var line in File.ReadLines(path).Skip(1)) // 1行目はヘッダ
             {
@@ -15,25 +15,27 @@
                                       .Select(v => float.Parse(v) / 255f) // 0〜1に正規化
                                       .ToArray();
 
-                var tensor = new Tensor(pixels, new int[] { 1, 784 }, requiresGrad: false);
-                data.Add((tensor, label));
+                var tensor = new Tensor1D(pixels, name: "MNIST_Image");
+                dataset.Add(new LabeledData<Tensor1D>(tensor, label));
             }
 
-            return data;
+            return dataset;
         }
 
-        public static IEnumerable<(Tensor, int[])> GetBatches(List<(Tensor, int)> dataset, int batchSize)
+        public static IEnumerable<BatchedData<BatchTensor1D>> GetBatches(Dataset<Tensor1D> dataset, int batchSize)
         {
             var rnd = new Random();
             var shuffled = dataset.OrderBy(x => rnd.Next()).ToList();
 
             for (int i = 0; i < shuffled.Count; i += batchSize)
             {
-                var batch = shuffled.Skip(i).Take(batchSize).ToList();
-                float[] xData = batch.SelectMany(d => d.Item1.Data).ToArray();
-                int[] yData = batch.Select(d => d.Item2).ToArray();
-                var xTensor = new Tensor(xData, new int[] { batch.Count, 784 }, requiresGrad: false);
-                yield return (xTensor, yData);
+                // i番目のバッチを取得
+                var batch = shuffled.Skip(i).Take(batchSize).ToArray();
+                // バッチのデータとラベルをまとめてTensorと配列に変換
+                BatchTensor1D batchTensor = new BatchTensor1D(batch.Select(x => x.Data).ToArray(), name: "BatchTensor1D(MNIST)");
+                int[] batchLabel = batch.Select(d => d.Label).ToArray();
+                
+                yield return new BatchedData<BatchTensor1D>(batchTensor, batchLabel);
             }
         }
     }
