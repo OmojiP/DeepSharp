@@ -24,9 +24,9 @@
             if (t.IsRequiresGrad)
             {
                 result.GradInfo.Parents = new List<Tensor> { t };
-                result.GradInfo.BackwardFn = (Tensor gradOutput) =>
+                result.GradInfo.BackwardFn = (Tensor dLdResult) =>
                 {
-                    if (gradOutput.GradInfo.Grad == null)
+                    if (dLdResult == null)
                         throw new InvalidOperationException("Gradient output is null in Softmax backward function.");
                     // gradOutput.Grad: [B, C]
                     t.GradInfo.Grad ??= Tensor.ZerosLike(t);
@@ -35,11 +35,11 @@
                         // compute dot = sum_j (dL/dy_j * y_j)
                         float dot = 0f;
                         for (int j = 0; j < classes; j++)
-                            dot += gradOutput.GradInfo.Grad.Data[i * classes + j] * result.Data[i * classes + j];
+                            dot += dLdResult.Data[i * classes + j] * result.Data[i * classes + j];
 
                         for (int j = 0; j < classes; j++)
                         {
-                            float dy = gradOutput.GradInfo.Grad.Data[i * classes + j];
+                            float dy = dLdResult.Data[i * classes + j];
                             float sz = result.Data[i * classes + j];
                             // dz = sz * (dy - dot)
                             t.GradInfo.Grad.Data[i * classes + j] += sz * (dy - dot);

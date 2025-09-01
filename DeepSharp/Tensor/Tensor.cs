@@ -43,7 +43,9 @@
 
                 if (t.GradInfo.BackwardFn != null)
                 {
-                    t.GradInfo.BackwardFn(t);
+                    if (t.GradInfo.Grad == null)
+                        throw new InvalidOperationException($"Tensor {t.Name} has null Grad in Backward.");
+                    t.GradInfo.BackwardFn(t.GradInfo.Grad);
                 }
             }
         }

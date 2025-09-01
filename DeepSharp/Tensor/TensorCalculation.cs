@@ -11,19 +11,19 @@
                 if (a.IsRequiresGrad || b.IsRequiresGrad)
                 {
                     result.GradInfo.Parents = new List<Tensor> { a, b };
-                    result.GradInfo.BackwardFn = (Tensor gradOutput) =>
+                    result.GradInfo.BackwardFn = (Tensor dLdResult) =>
                     {
-                        if (gradOutput.GradInfo.Grad == null)
+                        if (dLdResult == null)
                             throw new InvalidOperationException("Gradient output is null in operator + backward function.");
                         if (a.IsRequiresGrad)
                         {
                             a.GradInfo.Grad ??= ZerosLike(a);
-                            AddInto(a.GradInfo.Grad, gradOutput.GradInfo.Grad);
+                            AddInto(a.GradInfo.Grad, dLdResult);
                         }
                         if (b.IsRequiresGrad)
                         {
                             b.GradInfo.Grad ??= ZerosLike(b);
-                            AddInto(b.GradInfo.Grad, gradOutput.GradInfo.Grad);
+                            AddInto(b.GradInfo.Grad, dLdResult);
                         }
                     };
                 }
@@ -43,14 +43,14 @@
                 if (a.IsRequiresGrad || b.IsRequiresGrad)
                 {
                     result.GradInfo.Parents = new List<Tensor> { a, b };
-                    result.GradInfo.BackwardFn = (Tensor gradOutput) =>
+                    result.GradInfo.BackwardFn = (Tensor dLdResult) =>
                     {
-                        if (gradOutput.GradInfo.Grad == null)
+                        if (dLdResult == null)
                             throw new InvalidOperationException("Gradient output is null in operator + backward function.");
                         if (a.IsRequiresGrad)
                         {
                             a.GradInfo.Grad ??= ZerosLike(a);
-                            AddInto(a.GradInfo.Grad, gradOutput.GradInfo.Grad);
+                            AddInto(a.GradInfo.Grad, dLdResult);
                         }
                         if (b.IsRequiresGrad)
                         {
@@ -59,7 +59,7 @@
                             var tmp = new float[C];
                             for (int i = 0; i < B; i++)
                                 for (int j = 0; j < C; j++)
-                                    tmp[j] += gradOutput.GradInfo.Grad.Data[i * C + j];
+                                    tmp[j] += dLdResult.Data[i * C + j];
                             for (int j = 0; j < C; j++)
                                 b.GradInfo.Grad.Data[j] += tmp[j];
                         }
@@ -118,11 +118,11 @@
             if (a.IsRequiresGrad || b.IsRequiresGrad)
             {
                 result.GradInfo.Parents = new List<Tensor> { a, b };
-                result.GradInfo.BackwardFn = (Tensor gradOutput) =>
+                result.GradInfo.BackwardFn = (Tensor dLdResult) =>
                 {
-                    if (gradOutput.GradInfo.Grad == null) return; // nothing to do
+                    if (dLdResult == null) return; // nothing to do
 
-                    var go = gradOutput.GradInfo.Grad; // shape [N]
+                    var go = dLdResult; // shape [N]
 
                     // dL/da: length K
                     if (a.IsRequiresGrad)
@@ -160,30 +160,33 @@
             return result;
         }
 
-        public static Tensor2D MatMul(Tensor2D a, Tensor2D b)
+        public static Tensor2D MatMul(Tensor2D a, Tensor2D b, bool isRequiresGrad = true)
         {
             float[] resultData = MultiplyMatrix(a.Data, a.Shape, b.Data, b.Shape);
             var result = new Tensor2D(resultData, a.Shape[0], b.Shape[1], isRequiresGrad: a.IsRequiresGrad || b.IsRequiresGrad, name: "MatMul");
 
-            if (a.IsRequiresGrad || b.IsRequiresGrad)
+            if (isRequiresGrad && (a.IsRequiresGrad || b.IsRequiresGrad))
             {
                 result.GradInfo.Parents = new List<Tensor> { a, b };
-                result.GradInfo.BackwardFn = (Tensor gradOutput) =>
+                result.GradInfo.BackwardFn = (Tensor dLdResult) =>
                 {
+                    if (dLdResult == null)
+                        throw new InvalidOperationException("Gradient output is null in MatMul backward function.");
+
                     // gradOutput.Grad は [B, P]
                     if (a.IsRequiresGrad)
                     {
-                        var gradOutputTensor2D = gradOutput.GradInfo.Grad!.ToTensor2D();
+                        var gradOutputTensor2D = dLdResult.ToTensor2D();
                         
-                        var gradA = MatMul(gradOutputTensor2D, Transpose(b)); // 新しい Tensor を返す
+                        var gradA = MatMul(gradOutputTensor2D, Transpose(b), isRequiresGrad: false); // 新しい Tensor を返す
                         a.GradInfo.Grad ??= ZerosLike(a);
                         AddInto(a.GradInfo.Grad, gradA); // in-place に加算
                     }
                     if (b.IsRequiresGrad)
                     {
-                        var gradOutputTensor2D = gradOutput.GradInfo.Grad!.ToTensor2D();
-                                                
-                        var gradB = MatMul(Transpose(a), gradOutputTensor2D);
+                        var gradOutputTensor2D = dLdResult.ToTensor2D();
+
+                        var gradB = MatMul(Transpose(a), gradOutputTensor2D, isRequiresGrad: false);
                         b.GradInfo.Grad ??= ZerosLike(b);
                         AddInto(b.GradInfo.Grad, gradB);
 
@@ -236,15 +239,15 @@
             if (a.IsRequiresGrad || b.IsRequiresGrad)
             {
                 result.GradInfo.Parents = new List<Tensor> { a, b };
-                result.GradInfo.BackwardFn = (Tensor gradOutput) =>
+                result.GradInfo.BackwardFn = (Tensor dLdResult) =>
                 {
-                    if (gradOutput.GradInfo.Grad == null)
+                    if (dLdResult == null)
                         throw new InvalidOperationException("Gradient output is null in AddWithBroadcast backward function.");
                     // gradOutput.Grad : [B, C]
                     if (a.IsRequiresGrad)
                     {
                         a.GradInfo.Grad ??= ZerosLike(a);
-                        AddInto(a.GradInfo.Grad, gradOutput.GradInfo.Grad); // same shape
+                        AddInto(a.GradInfo.Grad, dLdResult); // same shape
                     }
                     if (b.IsRequiresGrad)
                     {
@@ -253,7 +256,7 @@
                         var tmp = new float[C];
                         for (int i = 0; i < B; i++)
                             for (int j = 0; j < C; j++)
-                                tmp[j] += gradOutput.GradInfo.Grad.Data[i * C + j];
+                                tmp[j] += dLdResult.Data[i * C + j];
 
                         // add tmp into b.Grad.Data (if b is 1D or 1xC, Data layout is same)
                         for (int j = 0; j < C; j++)

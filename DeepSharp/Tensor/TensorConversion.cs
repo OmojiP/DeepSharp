@@ -21,10 +21,10 @@
             if (tensor.IsRequiresGrad)
             {
                 result.GradInfo.Parents = new List<Tensor> { tensor };
-                result.GradInfo.BackwardFn = (Tensor gradOutput) =>
+                result.GradInfo.BackwardFn = (Tensor dLdResult) =>
                 {
                     // gradOutput.Grad は Tensor1D の勾配
-                    if (gradOutput.GradInfo.Grad != null)
+                    if (dLdResult != null)
                     {
                         // 元のBatchTensor1Dに勾配を伝播
                         tensor.GradInfo.Grad ??= Tensor.ZerosLike(tensor);
@@ -32,7 +32,7 @@
                         // 形状は同じなので、直接データをコピー
                         for (int i = 0; i < tensor.Data.Length; i++)
                         {
-                            tensor.GradInfo.Grad.Data[i] += gradOutput.GradInfo.Grad.Data[i];
+                            tensor.GradInfo.Grad.Data[i] += dLdResult.Data[i];
                         }
                     }
                 };
@@ -62,20 +62,20 @@
             if (tensor.IsRequiresGrad)
             {
                 result.GradInfo.Parents = new List<Tensor> { tensor };
-                result.GradInfo.BackwardFn = (Tensor gradOutput) =>
+                result.GradInfo.BackwardFn = (Tensor dLdResult) =>
                 {
                     // gradOutput.Grad は Tensor2D の勾配
-                    if (gradOutput.GradInfo.Grad != null)
-                    {
-                        // 元のBatchTensor1Dに勾配を伝播
-                        tensor.GradInfo.Grad ??= Tensor.ZerosLike(tensor);
+                    if (dLdResult == null) throw new InvalidOperationException("Gradient output is null in ToTensor2D backward function.");
 
-                        // 形状は同じなので、直接データをコピー
-                        for (int i = 0; i < tensor.Data.Length; i++)
-                        {
-                            tensor.GradInfo.Grad.Data[i] += gradOutput.GradInfo.Grad.Data[i];
-                        }
+                    // 元のBatchTensor1Dに勾配を伝播
+                    tensor.GradInfo.Grad ??= Tensor.ZerosLike(tensor);
+
+                    // 形状は同じなので、直接データをコピー
+                    for (int i = 0; i < tensor.Data.Length; i++)
+                    {
+                        tensor.GradInfo.Grad.Data[i] += dLdResult.Data[i];
                     }
+
                 };
             }
 
@@ -103,20 +103,20 @@
             if (tensor.IsRequiresGrad)
             {
                 result.GradInfo.Parents = new List<Tensor> { tensor };
-                result.GradInfo.BackwardFn = (Tensor gradOutput) =>
+                result.GradInfo.BackwardFn = (Tensor dLdResult) =>
                 {
                     // gradOutput.Grad は BatchTensor1D の勾配
-                    if (gradOutput.GradInfo.Grad != null)
-                    {
-                        // 元のTensorに勾配を伝播
-                        tensor.GradInfo.Grad ??= Tensor.ZerosLike(tensor);
+                    if (dLdResult == null) throw new InvalidOperationException("Gradient output is null in ToBatchTensor1D backward function.");
 
-                        // 形状は同じなので、直接データをコピー
-                        for (int i = 0; i < tensor.Data.Length; i++)
-                        {
-                            tensor.GradInfo.Grad.Data[i] += gradOutput.GradInfo.Grad.Data[i];
-                        }
+                    // 元のTensorに勾配を伝播
+                    tensor.GradInfo.Grad ??= Tensor.ZerosLike(tensor);
+
+                    // 形状は同じなので、直接データをコピー
+                    for (int i = 0; i < tensor.Data.Length; i++)
+                    {
+                        tensor.GradInfo.Grad.Data[i] += dLdResult.Data[i];
                     }
+
                 };
             }
 
@@ -142,20 +142,20 @@
             if (batchTensor1D.IsRequiresGrad)
             {
                 result.GradInfo.Parents = new List<Tensor> { batchTensor1D };
-                result.GradInfo.BackwardFn = (Tensor gradOutput) =>
+                result.GradInfo.BackwardFn = (Tensor dLdResult) =>
                 {
                     // gradOutput.Grad は Tensor2D の勾配
-                    if (gradOutput.GradInfo.Grad != null)
-                    {
-                        // 元のBatchTensor1Dに勾配を伝播
-                        batchTensor1D.GradInfo.Grad ??= Tensor.ZerosLike(batchTensor1D);
+                    if (dLdResult == null) throw new InvalidOperationException("Gradient output is null in ToTensor2D backward function.");
 
-                        // 形状は同じなので、直接データをコピー
-                        for (int i = 0; i < batchTensor1D.Data.Length; i++)
-                        {
-                            batchTensor1D.GradInfo.Grad.Data[i] += gradOutput.GradInfo.Grad.Data[i];
-                        }
+                    // 元のBatchTensor1Dに勾配を伝播
+                    batchTensor1D.GradInfo.Grad ??= Tensor.ZerosLike(batchTensor1D);
+
+                    // 形状は同じなので、直接データをコピー
+                    for (int i = 0; i < batchTensor1D.Data.Length; i++)
+                    {
+                        batchTensor1D.GradInfo.Grad.Data[i] += dLdResult.Data[i];
                     }
+
                 };
             }
 

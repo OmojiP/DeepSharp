@@ -11,15 +11,15 @@
             if (t.IsRequiresGrad)
             {
                 result.GradInfo.Parents = new List<Tensor> { t };
-                result.GradInfo.BackwardFn = (Tensor gradOutput) =>
+                result.GradInfo.BackwardFn = (Tensor dLdResult) =>
                 {
-                    if (gradOutput.GradInfo.Grad == null)
+                    if (dLdResult == null)
                         throw new InvalidOperationException("Gradient output is null in ReLU backward function.");
 
                     t.GradInfo.Grad ??= Tensor.ZerosLike(t);
                     for (int i = 0; i < resultData.Length; i++)
                     {
-                        float gradVal = gradOutput.GradInfo.Grad.Data[i];
+                        float gradVal = dLdResult.Data[i];
                         t.GradInfo.Grad.Data[i] += (t.Data[i] > 0 ? gradVal : 0f);
                     }
                 };
@@ -36,15 +36,15 @@
             if (t.IsRequiresGrad)
             {
                 result.GradInfo.Parents = new List<Tensor> { t };
-                result.GradInfo.BackwardFn = (Tensor gradOutput) =>
+                result.GradInfo.BackwardFn = (Tensor dLdResult) =>
                 {
-                    if (gradOutput.GradInfo.Grad == null)
+                    if (dLdResult == null)
                         throw new InvalidOperationException("Gradient output is null in ReLU backward function.");
 
                     t.GradInfo.Grad ??= Tensor.ZerosLike(t);
                     for (int i = 0; i < resultData.Length; i++)
                     {
-                        float gradVal = gradOutput.GradInfo.Grad.Data[i];
+                        float gradVal = dLdResult.Data[i];
                         t.GradInfo.Grad.Data[i] += (t.Data[i] > 0 ? gradVal : 0f);
                     }
                 };
@@ -61,15 +61,15 @@
             if (t.IsRequiresGrad)
             {
                 result.GradInfo.Parents = new List<Tensor> { t };
-                result.GradInfo.BackwardFn = (Tensor gradOutput) =>
+                result.GradInfo.BackwardFn = (Tensor dLdResult) =>
                 {
-                    if (gradOutput.GradInfo.Grad == null)
+                    if (dLdResult == null)
                         throw new InvalidOperationException("Gradient output is null in ReLU backward function.");
 
                     t.GradInfo.Grad ??= Tensor.ZerosLike(t);
                     for (int i = 0; i < resultData.Length; i++)
                     {
-                        float gradVal = gradOutput.GradInfo.Grad.Data[i];
+                        float gradVal = dLdResult.Data[i];
                         t.GradInfo.Grad.Data[i] += (t.Data[i] > 0 ? gradVal : 0f);
                     }
                 };

@@ -32,9 +32,9 @@
 
             var result = new ScalarTensor(lossPer.Average(), isRequiresGrad: true);
             result.GradInfo.Parents = new List<Tensor> { logits };
-            result.GradInfo.BackwardFn = (Tensor gradOutput) =>
+            result.GradInfo.BackwardFn = (Tensor dLdResult) =>
             {
-                float scale = (gradOutput.GradInfo.Grad != null) ? gradOutput.GradInfo.Grad.Data[0] / (float)B : 1f / (float)B;
+                float scale = (dLdResult != null) ? dLdResult.Data[0] / (float)B : 1f / (float)B;
                 logits.GradInfo.Grad ??= Tensor.ZerosLike(logits);
                 for (int i = 0; i < B; i++)
                 {

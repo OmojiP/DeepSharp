@@ -80,13 +80,13 @@
                 if (t.IsRequiresGrad)
                 {
                     result.GradInfo.Parents = new List<Tensor> { t };
-                    result.GradInfo.BackwardFn = (Tensor gradOutput) =>
+                    result.GradInfo.BackwardFn = (Tensor dLdResult) =>
                     {
                         // gradOutput.Grad: same shape as outT
-                        if (gradOutput.GradInfo.Grad == null) throw new InvalidOperationException("Gradient output is null in Transpose backward function.");
+                        if (dLdResult == null) throw new InvalidOperationException("Gradient output is null in Transpose backward function.");
                         t.GradInfo.Grad ??= ZerosLike(t);
                         // gradInput = transpose(gradOutput.Grad)
-                        var gradIn = Transpose(gradOutput.GradInfo.Grad, new int[] { 1, 0 });
+                        var gradIn = Transpose(dLdResult, new int[] { 1, 0 });
                         AddInto(t.GradInfo.Grad, gradIn);
                     };
                 }
@@ -130,12 +130,12 @@
                 int[] invPerm = new int[rank];
                 for (int i = 0; i < rank; i++) invPerm[perm[i]] = i;
 
-                result.GradInfo.BackwardFn = (Tensor gradOutput) =>
+                result.GradInfo.BackwardFn = (Tensor dLdResult) =>
                 {
-                    if (gradOutput.GradInfo.Grad == null) throw new InvalidOperationException("Gradient output is null in Transpose backward function.");
+                    if (dLdResult == null) throw new InvalidOperationException("Gradient output is null in Transpose backward function.");
                     t.GradInfo.Grad ??= ZerosLike(t);
                     // gradInput = transpose(gradOutput.Grad, inverse permutation)
-                    var gradIn = Transpose(gradOutput.GradInfo.Grad, invPerm);
+                    var gradIn = Transpose(dLdResult, invPerm);
                     AddInto(t.GradInfo.Grad, gradIn);
                 };
             }
