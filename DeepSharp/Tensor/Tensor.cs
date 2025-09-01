@@ -51,8 +51,17 @@
 
     public class GradInfo
     {
+        /// <summary>
+        /// このテンソル自身に対する損失Lの偏微分  ∂𝐿/∂(このテンソル) を保持する場所。計算前なら null
+        /// </summary>
         public Tensor? Grad;
+        /// <summary>
+        /// このテンソルのGradを前の演算Parentsに伝播させる関数。引数はこのテンソルのGrad。ParentsのGradを計算して加算する。
+        /// </summary>
         public Action<Tensor>? BackwardFn;
+        /// <summary>
+        /// このテンソルの計算に使用された親テンソルのリスト。BackwardFn内でこれらのテンソルのGradを計算。
+        /// </summary>
         public List<Tensor> Parents;
 
         public GradInfo()
