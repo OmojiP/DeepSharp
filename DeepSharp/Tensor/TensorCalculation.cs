@@ -71,6 +71,15 @@
             throw new InvalidOperationException("operator + : unsupported shapes");
         }
 
+        /// <summary>
+        /// destにsrcをin-placeで加算する。
+        /// 形状が異なる場合は例外をスローする。
+        /// 偏微分の加算などの勾配を計算したくない計算に使用する。
+        /// dL/dz = dL/dz * dz/dx + dL/dz * dz/dy のような場合など。
+        /// </summary>
+        /// <param name="dest"></param>
+        /// <param name="src"></param>
+        /// <exception cref="ArgumentException"></exception>
         public static void AddInto(Tensor dest, Tensor src)
         {
             if (dest.Data.Length != src.Data.Length)
@@ -93,6 +102,14 @@
             return result.ToBatchTensor1D();
         }
 
+        /// <summary>
+        /// y = a * b,
+        /// a: [K], b: [K, N] -> y: [N]
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="b"></param>
+        /// <returns></returns>
+        /// <exception cref="InvalidOperationException"></exception>
         public static Tensor1D MatMul(Tensor1D a, Tensor2D b)
         {
             int K = a.Shape[0];
@@ -100,12 +117,11 @@
             int N = b.Shape[1];
             if (K != Kb) throw new InvalidOperationException($"MatMul(Tensor1D,Tensor2D): inner dim mismatch (a.K={K}, b.K={Kb})");
 
-            // forward: y_j = sum_k a_k * b_{k,j}  -> length N
+            // forward: y_j = sum_k a_k * b_{k,j} -> length N
             var outData = new float[N];
             for (int j = 0; j < N; j++)
             {
                 float sum = 0f;
-                int baseIndex = j; // we'll access b as b[k*N + j]
                 for (int k = 0; k < K; k++)
                 {
                     sum += a.Data[k] * b.Data[k * N + j];
@@ -122,19 +138,17 @@
                 {
                     if (dLdResult == null) return; // nothing to do
 
-                    var go = dLdResult; // shape [N]
-
-                    // dL/da: length K
                     if (a.IsRequiresGrad)
                     {
                         a.GradInfo.Grad ??= ZerosLike(a);
-                        // a.Grad[k] += sum_j go[j] * b[k, j]
+                        // dL/da_k = sum_j dL/dy_j * b_{k,j}
+                        // a.Grad[k] += sum_j dLdResult[j] * b[k, j]
                         for (int k = 0; k < K; k++)
                         {
                             float s = 0f;
                             int bOff = k * N;
                             for (int j = 0; j < N; j++)
-                                s += go.Data[j] * b.Data[bOff + j];
+                                s += dLdResult.Data[j] * b.Data[bOff + j];
                             a.GradInfo.Grad.Data[k] += s;
                         }
                     }
@@ -143,14 +157,15 @@
                     if (b.IsRequiresGrad)
                     {
                         b.GradInfo.Grad ??= ZerosLike(b);
-                        // b.Grad[k, j] += a[k] * go[j]
+                        // dL/db_{k,j} = a_k * dL/dy_j
+                        // b.Grad[k, j] += a[k] * dLdResult[j]
                         for (int k = 0; k < K; k++)
                         {
                             float ak = a.Data[k];
                             int bOff = k * N;
                             for (int j = 0; j < N; j++)
                             {
-                                b.GradInfo.Grad.Data[bOff + j] += ak * go.Data[j];
+                                b.GradInfo.Grad.Data[bOff + j] += ak * dLdResult.Data[j];
                             }
                         }
                     }
@@ -160,6 +175,15 @@
             return result;
         }
 
+        /// <summary>
+        /// y = a * b, 
+        /// a: [M, N], b: [N, P] -> y: [M, P]
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="b"></param>
+        /// <param name="isRequiresGrad"></param>
+        /// <returns></returns>
+        /// <exception cref="InvalidOperationException"></exception>
         public static Tensor2D MatMul(Tensor2D a, Tensor2D b, bool isRequiresGrad = true)
         {
             float[] resultData = MultiplyMatrix(a.Data, a.Shape, b.Data, b.Shape);
@@ -173,23 +197,24 @@
                     if (dLdResult == null)
                         throw new InvalidOperationException("Gradient output is null in MatMul backward function.");
 
+                    var dLdResultTensor2D = dLdResult.ToTensor2D();
+                    
                     // gradOutput.Grad は [B, P]
                     if (a.IsRequiresGrad)
                     {
-                        var gradOutputTensor2D = dLdResult.ToTensor2D();
-                        
-                        var gradA = MatMul(gradOutputTensor2D, Transpose(b), isRequiresGrad: false); // 新しい Tensor を返す
+                        // dL/da = dL/dy * b^T
+                        var gradA = MatMul(dLdResultTensor2D, Transpose(b), isRequiresGrad: false);
+                        // dL/da を a.Grad に加算
                         a.GradInfo.Grad ??= ZerosLike(a);
-                        AddInto(a.GradInfo.Grad, gradA); // in-place に加算
+                        AddInto(a.GradInfo.Grad, gradA);
                     }
                     if (b.IsRequiresGrad)
                     {
-                        var gradOutputTensor2D = dLdResult.ToTensor2D();
-
-                        var gradB = MatMul(Transpose(a), gradOutputTensor2D, isRequiresGrad: false);
+                        // dL/db = a^T * dL/dy
+                        var gradB = MatMul(Transpose(a), dLdResultTensor2D, isRequiresGrad: false);
+                        // dL/db を b.Grad に加算
                         b.GradInfo.Grad ??= ZerosLike(b);
                         AddInto(b.GradInfo.Grad, gradB);
-
                     }
                 };
             }
